@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  # 1. SQL Server Database
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: medivision-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=MediVisionStrong@Password2026!
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P MediVisionStrong@Password2026! -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - medivision-network
+
+  # 2. Python FastAPI PyTorch AI Microservice
+  ai-service:
+    build:
+      context: ../ai-service
+      dockerfile: ../docker/Dockerfile.ai
+    container_name: medivision-ai-service
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - TORCH_NUM_THREADS=4
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - medivision-network
+
+  # 3. ASP.NET Core Backend
+  backend:
+    build:
+      context: ../backend
+      dockerfile: ../docker/Dockerfile.backend
+    container_name: medivision-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - Database__UseSqlServer=true
+      - ConnectionStrings__SqlServerConnection=Server=sqlserver,1433;Database=MediVisionDb;User Id=sa;Password=MediVisionStrong@Password2026!;TrustServerCertificate=True;
+      - AiService__BaseUrl=http://ai-service:8000
+      - Jwt__SecretKey=MediVision_Super_Secret_Key_For_Radiology_AI_Platform_2026_Enterprise_Secure!
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    volumes:
+      - backend-storage:/app/Storage
+    networks:
+      - medivision-network
+
+  # 4. React Frontend
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: ../docker/Dockerfile.frontend
+    container_name: medivision-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - medivision-network
+
+volumes:
+  sqlserver-data:
+  backend-storage:
+
+networks:
+  medivision-network:
+    driver: bridge
+

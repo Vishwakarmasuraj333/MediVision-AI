@@ -1,0 +1,25 @@
+# Dockerfile for MediVision ASP.NET Core Backend
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+COPY ["src/MediVision.Domain/MediVision.Domain.csproj", "src/MediVision.Domain/"]
+COPY ["src/MediVision.Application/MediVision.Application.csproj", "src/MediVision.Application/"]
+COPY ["src/MediVision.Infrastructure/MediVision.Infrastructure.csproj", "src/MediVision.Infrastructure/"]
+COPY ["src/MediVision.API/MediVision.API.csproj", "src/MediVision.API/"]
+
+RUN dotnet restore "src/MediVision.API/MediVision.API.csproj"
+
+COPY . .
+WORKDIR "/src/src/MediVision.API"
+RUN dotnet build "MediVision.API.csproj" -c Release -o /app/build
+RUN dotnet publish "MediVision.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+WORKDIR /app
+COPY --from=build /app/publish .
+
+ENV ASPNETCORE_URLS=http://+:5000
+EXPOSE 5000
+
+ENTRYPOINT ["dotnet", "MediVision.API.dll"]
+
