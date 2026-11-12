@@ -62,8 +62,10 @@ jobs:
         run: |
           cd ai-service
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest-cov scikit-learn
+          pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install --no-cache-dir -r requirements.txt
       - name: Run PyTest Suite with Coverage
         run: |
-          pytest ai-service/tests/test_ai_pipeline.py --cov=ai-service/app --cov-report=xml --cov-report=term
+          cd ai-service
+          pytest tests/test_ai_pipeline.py --cov=app --cov-report=xml --cov-report=term
+

@@ -48,9 +48,14 @@ env/
 .pytest_cache/
 ai-service/.pytest_cache/
 .coverage
+coverage.xml
+**/coverage.xml
 htmlcov/
 *.cover
 *.pyo
+*.db
+*.db-shm
+*.db-wal
 
 # Uploaded Medical Files / Ephemeral storage
 backend/src/MediVision.API/storage/
@@ -65,3 +70,4 @@ docker/storage/
 tmp/
 temp/
 *.log
+

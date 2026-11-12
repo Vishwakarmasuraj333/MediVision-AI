@@ -18,6 +18,14 @@ LABELS = [
     "No Finding"
 ]
 
+def _build_backbone(builder_fn, weights_value):
+    """Instantiate torchvision backbone with default weights and safe offline fallback."""
+    try:
+        return builder_fn(weights=weights_value)
+    except Exception:
+        return builder_fn(weights=None)
+
+
 class ChestXrayClassifier(nn.Module):
     """
     Modular multi-label chest radiograph classification backbone.
@@ -29,7 +37,7 @@ class ChestXrayClassifier(nn.Module):
         self.num_classes = num_classes
 
         if architecture.lower() == "densenet121":
-            base = models.densenet121(weights=models.DenseNet121_Weights.DEFAULT if hasattr(models, "DenseNet121_Weights") else None)
+            base = _build_backbone(models.densenet121, models.DenseNet121_Weights.DEFAULT if hasattr(models, "DenseNet121_Weights") else None)
             self.features = base.features
             in_features = base.classifier.in_features
             self.classifier = nn.Sequential(
@@ -38,7 +46,7 @@ class ChestXrayClassifier(nn.Module):
             )
             self.target_layer = self.features.denseblock4.denselayer16.conv2
         elif "efficientnet" in architecture.lower():
-            base = models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.DEFAULT if hasattr(models, "EfficientNet_B0_Weights") else None)
+            base = _build_backbone(models.efficientnet_b0, models.EfficientNet_B0_Weights.DEFAULT if hasattr(models, "EfficientNet_B0_Weights") else None)
             self.features = base.features
             in_features = base.classifier[1].in_features
             self.classifier = nn.Sequential(
@@ -47,7 +55,7 @@ class ChestXrayClassifier(nn.Module):
             )
             self.target_layer = self.features[-1]
         elif "resnet" in architecture.lower():
-            base = models.resnet50(weights=models.ResNet50_Weights.DEFAULT if hasattr(models, "ResNet50_Weights") else None)
+            base = _build_backbone(models.resnet50, models.ResNet50_Weights.DEFAULT if hasattr(models, "ResNet50_Weights") else None)
             self.conv1 = base.conv1
             self.bn1 = base.bn1
             self.relu = base.relu
